@@ -15,9 +15,6 @@ BORDER_HEIGHT equ SCREEN_HEIGHT - 2 * TOP_POS
 org 100h
 
 Start:
-
-        mov cx, BORDER_WIDTH
-
         mov ax, 0b800h              ; Put vram adress into es
         mov es, ax
 
