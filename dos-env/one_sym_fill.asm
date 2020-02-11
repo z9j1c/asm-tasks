@@ -9,7 +9,7 @@ LEFT_POS equ 4            ; Left position of border
 TOP_POS equ 4             ; Top position of border
 
 BORDER_WIDTH equ SCREEN_WIDTH - 2 * LEFT_POS
-BORDER_WIDTH equ SCREEN_WIDTH - 2 * LEFT_POS
+BORDER_HEIGHT equ SCREEN_WIDTH - 2 * TOP_POS
 
 
 org 100h
@@ -23,9 +23,9 @@ Start:
         mov di, (SCREEN_WIDTH * TOP_POS + LEFT_POS) * BPS ; Compute offset of left top corner of the border
 
         mov al, ' '             ; Put space symbol as one to be displayed
-        mov ah, 20h             ; Terminate
+        mov ah, 20h             ; Set symbol attribute
 
-        mov word ptr es:[di], ax
-        int 20h
+        mov word ptr es:[di], ax; Write symbol in video ram
+        int 20h                 ; Terminate
 
 end   Start
