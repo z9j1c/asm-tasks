@@ -1,6 +1,4 @@
-## Assembly tasks in DOS environment
-
-Tested in DOSBox
+## Task: draw border via direct writing into process video memory
 
 ### Ver. 3
 
