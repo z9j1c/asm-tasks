@@ -1,4 +1,4 @@
-## Task: imlement several functions from C standard library
+## Task: implement several functions from C standard library
 
 + `memset`
 + `memchr`
