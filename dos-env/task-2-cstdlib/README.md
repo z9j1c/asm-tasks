@@ -7,5 +7,4 @@
 + `strlen`
 + `strcpy`
 + `strchr`
-+ `strrchr`
 + `strcmp`
