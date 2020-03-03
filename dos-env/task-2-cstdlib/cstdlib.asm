@@ -20,7 +20,7 @@ Start:
     mov dx, offset MemcpyTGT
     int 21h
 
-    mov di, offset MemchrLine
+    mov si, offset MemchrLine
     mov bx, 'o'
     mov cx, 6
     call memchr
@@ -51,7 +51,7 @@ Start:
     mov ah, 09h
     int 21h
 
-    mov di, offset StrchrLine
+    mov si, offset StrchrLine
     mov bl, 'e'
     call strchr
     mov di, ax
@@ -86,33 +86,28 @@ memset ENDP
 ; cx - bytes count
 ; ============
 memcpy PROC
-    memcpy_loop_:
-        mov al, byte ptr [si]
-        mov byte ptr [di], al
-        inc si
-        inc di
-        loop memcpy_loop_
+    rep movsb
     ret
 memcpy ENDP
 
 ; ============
-; di - addr
+; si - addr
 ; bl - target byte
 ; cx - max bytes count
 ; ax - return addr
 ; ============
 memchr PROC
     memchr_loop_:
-        mov al, byte ptr [di]
+        lodsb
         cmp bl, al
         je memchr_return_addr_
-        inc di
         loop memchr_loop_
     mov ax, 0h
     jmp memchr_end_
 
     memchr_return_addr_:
-        mov ax, di
+        mov ax, si
+        sub ax, 01h
     
     memchr_end_:
     ret
@@ -189,16 +184,16 @@ strcpy PROC
 strcpy ENDP
 
 ; ============
-; di - addr
+; si - addr
 ; bl - target byte
 ; ax - return addr
 ; ============
 strchr PROC
     push bx
-    push di
+    push si
     call strlen
     
-    pop di
+    pop si
     pop bx
     inc ax
     mov cx, ax
