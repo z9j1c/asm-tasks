@@ -214,37 +214,30 @@ strchr ENDP
 strcmp PROC
     push di
     
-    call strlen
+    call strlen                 ; Get first line length
     push ax
     
-    mov di, si
+    mov di, si                  ; Get second line length
     call strlen
     
-    pop cx
-    pop di
+    pop cx                      ; Load first line length in cx
+    pop di                      ; Get initial di address
 
-    cmp ax, cx
-    mov bx, ax
+    cmp ax, cx                  ; Compare two lengths
+    mov bx, ax                  ; Compute lengths' difference and save it on stacks
     sub bx, cx
     push bx
     
     jle strcmp_after_len_swap
-    mov ax, cx
-    
-    xor dx, dx
-    pop bx
-    sub dx, bx
-    push dx
+    mov ax, cx                  ; If len1 > len2 then swap
 
     strcmp_after_len_swap:
     call memcmp
-    pop bx
+    pop bx                      ; Store lengths difference in bx
 
-    cmp ax, 0h
+    cmp ax, 0h                  ; If memcmp returned 'equal', then only lengths difference matters
     jne strcmp_end_
-    cmp bx, 0h
-    je strcmp_end_
-    mov ax, -1h
+    mov ax, bx
 
     strcmp_end_:
     ret
