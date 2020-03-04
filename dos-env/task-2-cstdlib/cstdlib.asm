@@ -20,10 +20,11 @@ Start:
     mov dx, offset MemcpyTGT
     int 21h
 
-    mov si, offset MemchrLine
-    mov bx, 'o'
+    mov di, offset MemchrLine
+    mov al, 'o'
     mov cx, 6
     call memchr
+    mov di, bx
     mov dx, [di]
     mov ah, 02h
     int 21h
@@ -37,7 +38,7 @@ Start:
     mov ah, 02h
     int 21h
 
-    mov di, offset StrlenLine
+    mov si, offset StrlenLine
     call strlen
     mov dx, ax
     add dx, 30h
@@ -52,15 +53,14 @@ Start:
     int 21h
 
     mov si, offset StrchrLine
-    mov bl, 'e'
+    mov dl, 'e'
     call strchr
-    mov di, ax
-    mov dl, byte ptr [di]
+    mov dl, byte ptr [bx]
     mov ah, 02h
     int 21h
 
-    mov di, offset StrcmpLin1
-    mov si, offset StrcmpLin2
+    mov si, offset StrcmpLin1
+    mov di, offset StrcmpLin2
     call strcmp
     mov dx, ax
     add dx, 40h
@@ -86,28 +86,27 @@ memset ENDP
 ; cx - bytes count
 ; ============
 memcpy PROC
+    cld
     rep movsb
     ret
 memcpy ENDP
 
 ; ============
-; si - addr
-; bl - target byte
+; di - addr
+; al - target byte
 ; cx - max bytes count
-; ax - return addr
+; bx - return addr
 ; ============
 memchr PROC
-    memchr_loop_:
-        lodsb
-        cmp bl, al
-        je memchr_return_addr_
-        loop memchr_loop_
-    mov ax, 0h
-    jmp memchr_end_
+    cld
+    mov bx, 0h
+    repne scasb
 
-    memchr_return_addr_:
-        mov ax, si
-        sub ax, 01h
+    cmp cx, 0h
+    je memchr_end_
+
+    mov bx, di
+    sub bx, 01h
     
     memchr_end_:
     ret
@@ -120,46 +119,34 @@ memchr ENDP
 ; ax - return value
 ; ============
 memcmp PROC
-    memcmp_loop_:
-        mov al, byte ptr [di]
-        mov bl, byte ptr [si]
-
-        cmp al, bl
-        jne memcmp_return_value_
-        
-        inc di
-        inc si
-        loop memcmp_loop_
+    cld
+    repe cmpsb
     
-    mov ax, 0h
-    jmp memcmp_end_
-
-    memcmp_return_value_:
-        xor ax, ax
-        xor dx, dx
-        mov al, byte ptr [di]
-        mov dl, byte ptr [si]
-        sub ax, dx
-
-    memcmp_end_:
+    dec di
+    dec si
+    
+    mov ax, [di]
+    sub ax, [si]
     ret
 memcmp ENDP
 
 ; ============
-; di - str addr
+; si - str addr
 ; ============
 strlen PROC
-    mov ax, 0h
+    cld
+    xor bx, bx
+    
     strlen_loop_:
-        mov dl, byte ptr [di]
-        cmp dl, 0h
+        lodsb
+        cmp al, 0h
         je strlen_end_
 
-        inc ax
-        inc di
+        inc bx
         jmp strlen_loop_
 
     strlen_end_:
+    mov ax, bx
     ret
 strlen ENDP
 
@@ -168,71 +155,76 @@ strlen ENDP
 ; di - addr2
 ; ============
 strcpy PROC
-    push di
-    push si
-    mov di, si
-    call strlen
-    
-    pop si
-    pop di
-    inc ax
-    
-    mov cx, ax
-    call memcpy
+    cld
 
+    strcpy_loop_:
+        lodsb
+        mov byte ptr [di], al
+        inc di
+
+        cmp al, 0h
+        je strcpy_end_
+        jmp strcpy_loop_
+
+    strcpy_end_:
     ret
 strcpy ENDP
 
 ; ============
 ; si - addr
-; bl - target byte
-; ax - return addr
+; dl - target byte
+; bx - return addr
 ; ============
 strchr PROC
-    push bx
-    push si
-    call strlen
-    
-    pop si
-    pop bx
-    inc ax
-    mov cx, ax
-    
-    call memchr
+    strchr_loop_:
+        lodsb
+        cmp al, dl
+        je strchr_found_
+
+        cmp al, 0h
+        jne strchr_loop_
+        
+        mov bx, 0h
+        jmp strchr_end_
+
+    strchr_found_:
+        mov bx, si
+        dec bx
+
+    strchr_end_:
     ret
 strchr ENDP
 
 ; ============
-; di - addr1
-; si - addr2
+; si - addr1
+; di - addr2
+; ax - return value
 ; ============
 strcmp PROC
-    push di
-    
-    call strlen                 ; Get first line length
-    push ax
-    
-    mov di, si                  ; Get second line length
-    call strlen
-    
-    pop cx                      ; Load first line length in cx
-    pop di                      ; Get initial di address
+    strcmp_loop_:
+        mov al, byte ptr [si]       ; Get two bytes and shift pointers
+        mov dl, byte ptr [di]
+        inc si
+        inc di
 
-    cmp ax, cx                  ; Compare two lengths
-    mov bx, ax                  ; Compute lengths' difference and save it on stacks
-    sub bx, cx
-    push bx
-    
-    jle strcmp_after_len_swap
-    mov ax, cx                  ; If len1 > len2 then swap
+        cmp al, dl
+        jg strcmp_second_           ; Obviously the second line is less
+        jl strcmp_first_            ; Obviously the first line is less
 
-    strcmp_after_len_swap:
-    call memcmp
-    pop bx                      ; Store lengths difference in bx
+        cmp al, 0h                  ; Compare with endline
+        jne strcmp_loop_            ; If not -> loop
+        jmp strcmp_equal_           ; Else -> equal (shorter-greater lines case is handled previously)
 
-    cmp ax, 0h                  ; If memcmp returned 'equal', then only lengths difference matters
-    jne strcmp_end_
-    mov ax, bx
+    strcmp_second_:
+        mov ax, 1h
+        jmp strcmp_end_
+
+    strcmp_first_:
+        mov ax, -1h
+        jmp strcmp_end_
+
+    strcmp_equal_:
+        xor ax, ax
 
     strcmp_end_:
     ret
