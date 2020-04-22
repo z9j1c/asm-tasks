@@ -69,6 +69,14 @@ zprintf:
     cmp bl, 'b'
     je .Lprint_bin
 
+    # Check oct modifier
+    cmp bl, 'o'
+    je .Lprint_oct
+
+    # Check oct modifier
+    cmp bl, 'x'
+    je .Lprint_hex
+
 .Lprint_symbol:
     push rdi
     push r9
@@ -85,6 +93,7 @@ zprintf:
     pop r9
     pop rdi
     jmp .Lparse_loop
+
 
 # === Print line by ptr [R9] ===
 .Lprint_line:
@@ -120,6 +129,7 @@ zprintf:
         pop rdi
         jmp .Lparse_loop
 
+# === Print integer [R9] in binary format ===
 .Lprint_bin:
     # Save arguments ptr's
     push rdi
@@ -157,6 +167,87 @@ zprintf:
     pop r9
     add r9, 0x8
     pop rdi
+    jmp .Lparse_loop
+
+# === Print integer [R9] in oct format ===
+.Lprint_oct:
+    # Save arguments ptr's
+    push rdi
+    push r9
+    push r11
+
+    mov r9, [r9]
+    xor rcx, rcx
+    .Lprint_oct_produce_loop:
+        mov r11, r9
+        and r11, 0x7
+        
+        push r11
+        inc rcx
+
+        shr r9, 0x3
+        cmp r9, 0x0
+        je .Lprint_oct_loop
+        jmp .Lprint_oct_produce_loop
+
+    .Lprint_oct_loop:
+        mov rax, 0x1
+        pop rsi
+        add rsi, offset TranslateLine
+        mov rdi, 0x1
+        mov rdx, 0x1
+
+        push rcx
+        syscall
+        pop rcx
+        loop .Lprint_oct_loop
+
+    # Restore arguments ptr's
+    pop r11
+    pop r9
+    add r9, 0x8
+    pop rdi
+    jmp .Lparse_loop
+
+# === Print integer [R9] in hex format ===
+.Lprint_hex:
+    # Save arguments ptr's
+    push rdi
+    push r9
+    push r11
+
+    mov r9, [r9]
+    xor rcx, rcx
+    .Lprint_hex_produce_loop:
+        mov r11, r9
+        and r11, 0xF
+        
+        push r11
+        inc rcx
+
+        shr r9, 0x4
+        cmp r9, 0x0
+        je .Lprint_hex_loop
+        jmp .Lprint_hex_produce_loop
+
+    .Lprint_hex_loop:
+        mov rax, 0x1
+        pop rsi
+        add rsi, offset TranslateLine
+        mov rdi, 0x1
+        mov rdx, 0x1
+
+        push rcx
+        syscall
+        pop rcx
+        loop .Lprint_hex_loop
+
+    # Restore arguments ptr's
+    pop r11
+    pop r9
+    add r9, 0x8
+    pop rdi
+    jmp .Lparse_loop
 
 # Modified epilogue
 .Lepilogue:
