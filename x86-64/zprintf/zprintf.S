@@ -36,8 +36,8 @@ zprintf:
 
     mov r11, rsp # R11 will be pointer at double arguments
 
-    push  r10 # Place return address back
-    push  rbp # Usual prologue
+    push r10 # Place return address back
+    push rbp # Usual prologue
     mov rbp, rsp
 
     dec rdi # Trick to inc RDI in every loop iteration
@@ -313,6 +313,12 @@ zprintf:
     push r11
 
     push [r9]
+    mov rsi, rsp
+    mov rax, 0x1
+    mov rdi, 0x1
+    mov rdx, 0x1
+    syscall
+    add rsp, 0x8
 
     # Restore arguments ptr's
     pop r11
@@ -326,7 +332,7 @@ zprintf:
     leave
     pop r10
     add rsp, 0x68
-    push  r10
+    push r10
     ret
 
 .section .data
