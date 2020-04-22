@@ -77,6 +77,10 @@ zprintf:
     cmp bl, 'x'
     je .Lprint_hex
 
+    # Check ec modifier
+    cmp bl, 'd'
+    je .Lprint_dec
+
 .Lprint_symbol:
     push rdi
     push r9
@@ -129,6 +133,7 @@ zprintf:
         pop rdi
         jmp .Lparse_loop
 
+
 # === Print integer [R9] in binary format ===
 .Lprint_bin:
     # Save arguments ptr's
@@ -168,6 +173,7 @@ zprintf:
     add r9, 0x8
     pop rdi
     jmp .Lparse_loop
+
 
 # === Print integer [R9] in oct format ===
 .Lprint_oct:
@@ -209,6 +215,7 @@ zprintf:
     pop rdi
     jmp .Lparse_loop
 
+
 # === Print integer [R9] in hex format ===
 .Lprint_hex:
     # Save arguments ptr's
@@ -248,6 +255,51 @@ zprintf:
     add r9, 0x8
     pop rdi
     jmp .Lparse_loop
+
+
+# === Print [R9] in decimal format ===
+.Lprint_dec:
+    # Save arguments ptr's
+    push rdi
+    push r9
+    push r11
+
+    mov r9, [r9]
+    xor rcx, rcx
+    .Lprint_dec_produce_loop:
+        # Push remainder and continue with quotient
+        mov rax, r9
+        xor rdx, rdx
+        mov r11, 0xA
+        div r11
+        push rdx
+        mov r9, rax
+        inc rcx
+
+        cmp r9, 0x0
+        je .Lprint_dec_loop
+        jmp .Lprint_dec_produce_loop
+
+    # Print stacked values
+    .Lprint_dec_loop:
+        mov rax, 0x1
+        pop rsi
+        add rsi, offset TranslateLine
+        mov rdi, 0x1
+        mov rdx, 0x1
+
+        push rcx
+        syscall
+        pop rcx
+        loop .Lprint_hex_loop
+
+    # Restore arguments ptr's
+    pop r11
+    pop r9
+    add r9, 0x8
+    pop rdi
+    jmp .Lparse_loop
+
 
 # Modified epilogue
 .Lepilogue:
