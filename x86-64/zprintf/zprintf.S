@@ -77,9 +77,13 @@ zprintf:
     cmp bl, 'x'
     je .Lprint_hex
 
-    # Check ec modifier
+    # Check dec modifier
     cmp bl, 'd'
     je .Lprint_dec
+
+    # Check char modifier
+    cmp bl, 'c'
+    je .Lprint_char
 
 .Lprint_symbol:
     push rdi
@@ -300,6 +304,22 @@ zprintf:
     pop rdi
     jmp .Lparse_loop
 
+
+# === Print char ===
+.Lprint_char:
+    # Save arguments ptr's
+    push rdi
+    push r9
+    push r11
+
+    push [r9]
+
+    # Restore arguments ptr's
+    pop r11
+    pop r9
+    add r9, 0x8
+    pop rdi
+    jmp .Lparse_loop
 
 # Modified epilogue
 .Lepilogue:
