@@ -17,22 +17,22 @@ zprintf:
     mov r9, rsp # R9 will be pointer at integer arguments
 
     # Save double arguments on stack
-    movq rdx, xmm0
-    push  rdx
-    movq rdx, xmm1
-    push  rdx
-    movq rdx, xmm2
-    push  rdx
-    movq rdx, xmm3
-    push  rdx
-    movq rdx, xmm4
-    push  rdx
-    movq rdx, xmm5
-    push  rdx
-    movq rdx, xmm6
-    push  rdx
     movq rdx, xmm7
-    push  rdx
+    push rdx
+    movq rdx, xmm6
+    push rdx
+    movq rdx, xmm5
+    push rdx
+    movq rdx, xmm4
+    push rdx
+    movq rdx, xmm3
+    push rdx
+    movq rdx, xmm2
+    push rdx
+    movq rdx, xmm1
+    push rdx
+    movq rdx, xmm0
+    push rdx
 
     mov r11, rsp # R11 will be pointer at double arguments
 
@@ -67,15 +67,21 @@ zprintf:
 
     # Check binary modifier
     cmp bl, 'b'
+    mov r8, 0x1
+    mov al, 0x1
     je .Lprint_bin
 
     # Check oct modifier
     cmp bl, 'o'
-    je .Lprint_oct
+    mov r8, 0x7
+    mov al, 0x3
+    je .Lprint_bin
 
-    # Check oct modifier
+    # Check hex modifier
     cmp bl, 'x'
-    je .Lprint_hex
+    mov r8, 0xF
+    mov al, 0x4
+    je .Lprint_bin
 
     # Check dec modifier
     cmp bl, 'd'
@@ -149,12 +155,16 @@ zprintf:
     xor rcx, rcx
     .Lprint_bin_produce_loop:
         mov r11, r9
-        and r11, 0x1
+        and r11, r8
         
         push r11
         inc rcx
 
-        shr r9, 0x1
+        push rcx
+        mov cl, al
+        shr r9, cl
+        pop rcx
+
         cmp r9, 0x0
         je .Lprint_bin_loop
         jmp .Lprint_bin_produce_loop
@@ -170,88 +180,6 @@ zprintf:
         syscall
         pop rcx
         loop .Lprint_bin_loop
-
-    # Restore arguments ptr's
-    pop r11
-    pop r9
-    add r9, 0x8
-    pop rdi
-    jmp .Lparse_loop
-
-
-# === Print integer [R9] in oct format ===
-.Lprint_oct:
-    # Save arguments ptr's
-    push rdi
-    push r9
-    push r11
-
-    mov r9, [r9]
-    xor rcx, rcx
-    .Lprint_oct_produce_loop:
-        mov r11, r9
-        and r11, 0x7
-        
-        push r11
-        inc rcx
-
-        shr r9, 0x3
-        cmp r9, 0x0
-        je .Lprint_oct_loop
-        jmp .Lprint_oct_produce_loop
-
-    .Lprint_oct_loop:
-        mov rax, 0x1
-        pop rsi
-        add rsi, offset TranslateLine
-        mov rdi, 0x1
-        mov rdx, 0x1
-
-        push rcx
-        syscall
-        pop rcx
-        loop .Lprint_oct_loop
-
-    # Restore arguments ptr's
-    pop r11
-    pop r9
-    add r9, 0x8
-    pop rdi
-    jmp .Lparse_loop
-
-
-# === Print integer [R9] in hex format ===
-.Lprint_hex:
-    # Save arguments ptr's
-    push rdi
-    push r9
-    push r11
-
-    mov r9, [r9]
-    xor rcx, rcx
-    .Lprint_hex_produce_loop:
-        mov r11, r9
-        and r11, 0xF
-        
-        push r11
-        inc rcx
-
-        shr r9, 0x4
-        cmp r9, 0x0
-        je .Lprint_hex_loop
-        jmp .Lprint_hex_produce_loop
-
-    .Lprint_hex_loop:
-        mov rax, 0x1
-        pop rsi
-        add rsi, offset TranslateLine
-        mov rdi, 0x1
-        mov rdx, 0x1
-
-        push rcx
-        syscall
-        pop rcx
-        loop .Lprint_hex_loop
 
     # Restore arguments ptr's
     pop r11
@@ -297,11 +225,16 @@ zprintf:
         pop rcx
         loop .Lprint_hex_loop
 
-    # Restore arguments ptr's
+    # Restore arguments ptr's    
     pop r11
     pop r9
-    add r9, 0x8
     pop rdi
+
+    # .Lprint_dec also is used as auxiliary part of .Lprint_float
+    # In that case return into .Lprint_float 
+    jmp .Lprint_float_frac
+
+    add r9, 0x8
     jmp .Lparse_loop
 
 
@@ -327,6 +260,47 @@ zprintf:
     pop rdi
     jmp .Lparse_loop
 
+
+# === Print float ===
+.Lprint_float:
+    # Save arguments ptr's
+    push rdi
+    push r9
+    push r11
+
+    # Set Rounding Control: truncate
+    fstcw [RCmode]
+    mov ax, [RCmode]
+    or ax, 0x0C00
+    mov [RCmode], ax
+    fldcw [RCmode]
+
+    # Load float argument on FPU stack
+    fld qword ptr [r11]
+
+    # Get integer part of float number
+    fistp qword ptr [FloatIntPart]
+
+    push r9
+    mov r9, offset FloatIntPart
+    mov ax, 0x1
+    jmp .Lprint_dec
+
+    .Lprint_float_frac:
+    pop r9
+
+    mov rax, 0x1
+    mov rdi, 0x1
+    mov rsi, offset DotSign
+    mov rdx, 0x1
+    syscall
+
+    # Restore arguments ptr's
+    pop r11
+    pop r9
+    pop rdi
+    jmp .Lparse_loop
+
 # Modified epilogue
 .Lepilogue:
     leave
@@ -337,3 +311,9 @@ zprintf:
 
 .section .data
     TranslateLine: .ascii "0123456789ABCDEF"
+    DotSign: .ascii "."
+    RCmode: .word 0x0
+    AuxiliaryDecFlag: .word 0x0
+    FloatIntPart: .word 0x0, 0x0, 0x0, 0x0
+    FloatFracPart: .word 0x0, 0x0, 0x0, 0x0
+    FracPartMultiplier: .word 0x0, 0b100000000
