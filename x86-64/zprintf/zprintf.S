@@ -223,17 +223,12 @@ zprintf:
         push rcx
         syscall
         pop rcx
-        loop .Lprint_hex_loop
+        loop .Lprint_dec_loop
 
     # Restore arguments ptr's    
     pop r11
     pop r9
     pop rdi
-
-    # .Lprint_dec also is used as auxiliary part of .Lprint_float
-    # In that case return into .Lprint_float 
-    jmp .Lprint_float_frac
-
     add r9, 0x8
     jmp .Lparse_loop
 
@@ -257,47 +252,6 @@ zprintf:
     pop r11
     pop r9
     add r9, 0x8
-    pop rdi
-    jmp .Lparse_loop
-
-
-# === Print float ===
-.Lprint_float:
-    # Save arguments ptr's
-    push rdi
-    push r9
-    push r11
-
-    # Set Rounding Control: truncate
-    fstcw [RCmode]
-    mov ax, [RCmode]
-    or ax, 0x0C00
-    mov [RCmode], ax
-    fldcw [RCmode]
-
-    # Load float argument on FPU stack
-    fld qword ptr [r11]
-
-    # Get integer part of float number
-    fistp qword ptr [FloatIntPart]
-
-    push r9
-    mov r9, offset FloatIntPart
-    mov ax, 0x1
-    jmp .Lprint_dec
-
-    .Lprint_float_frac:
-    pop r9
-
-    mov rax, 0x1
-    mov rdi, 0x1
-    mov rsi, offset DotSign
-    mov rdx, 0x1
-    syscall
-
-    # Restore arguments ptr's
-    pop r11
-    pop r9
     pop rdi
     jmp .Lparse_loop
 
