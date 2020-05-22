@@ -54,7 +54,7 @@ _ZN9StringSet4FindEPKc:
 
 .FIND_NODES_LOOP:
 	# Get next_ ptr, if it's nullptr --> return false
-	mov	r10, qword ptr [r10 + 0x18]
+	mov r10, qword ptr [r10 + 0x18]
 	test r10, r10
 	je .FIND_FALSE_RETURN
 
