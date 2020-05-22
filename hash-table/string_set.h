@@ -17,7 +17,7 @@
 */
 namespace hash_table_defaults {
     const unsigned SIZE = 16;
-    const double LOAD_FACTOR = 0.96;
+    const double LOAD_FACTOR = 2.5;
 
     const int BUFF_SIZE = 18 + 1;
 }

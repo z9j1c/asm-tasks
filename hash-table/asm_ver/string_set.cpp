@@ -1,4 +1,4 @@
-#include "string_set.h"
+#include "../string_set.h"
 
 StringSet::StringSet(unsigned table_size, double load_factor) :
     table_size_(table_size),
@@ -67,35 +67,6 @@ bool StringSet::Insert(const char* str) {
 
     ++inserted_elems_count_;
     return true;
-}
-
-bool StringSet::Find(const char* str) {
-    _db(std::cout << "--> FIND\n");
-    unsigned hash = Hash(str);
-    unsigned ins_place = hash % table_size_;
-
-    _db(std::cout << "  start traverse loop with position " << ins_place << "\n");
-    TNode* curr_node = root_nodes_ + ins_place;
-
-    if (!curr_node->filled_flag_) {
-        // If even root node is empty
-        // then there is no chain and no requested key-string
-        
-        _db(std::cout << "   empty root node\n");
-        return false;
-    }
-
-    while (curr_node != nullptr) {
-        if (curr_node->hash_ == hash && strcmp(curr_node->str_, str) == 0) {
-            _db(std::cout << "  found\n");
-            return true;
-        }
-
-        curr_node = curr_node->next_node_;
-    }
-
-    _db(std::cout << "  not found\n");
-    return false;
 }
 
 bool StringSet::Erase(const char* str) {
@@ -167,6 +138,7 @@ void StringSet::Rehash() {
 }
 
 unsigned StringSet::Hash(const char* str) {
+    // Hash algorithm: fnv1a32
     unsigned hash = 0x811c9dc5;
     while (*str != '\0') {
         hash = (hash ^ *str) * 0x01000193;
