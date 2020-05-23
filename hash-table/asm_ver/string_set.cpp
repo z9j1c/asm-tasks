@@ -9,7 +9,70 @@ StringSet::StringSet(unsigned table_size, double load_factor) :
     root_nodes_ = new TNode[table_size_];
 }
 
+StringSet::StringSet(StringSet&& set) :
+    root_nodes_(std::move(set.root_nodes_)),
+    table_size_(std::move(set.table_size_)),
+    inserted_elems_count_(std::move(set.inserted_elems_count_)),
+    load_factor_(std::move(set.load_factor_)) {}
+
+StringSet::StringSet(const StringSet& set) :
+    table_size_(set.table_size_),
+    load_factor_(set.load_factor_)
+{
+    TNode* old_nodes = set.root_nodes_;
+    root_nodes_ = new TNode[table_size_];
+
+    for (unsigned root_node_index = 0; root_node_index < table_size_; ++root_node_index) {
+        if (!old_nodes[root_node_index].filled_flag_) {
+            continue;
+        }
+
+        TNode* curr_node = old_nodes + root_node_index;
+        while (curr_node != nullptr) {
+            Insert(curr_node->str_);
+            curr_node = curr_node->next_node_;
+        }
+    }
+}
+
+StringSet& StringSet::operator=(StringSet&& set) {
+    RemoveNodes();
+
+    root_nodes_ = std::move(set.root_nodes_);
+    table_size_ = std::move(set.table_size_);
+    inserted_elems_count_ = std::move(set.inserted_elems_count_);
+    load_factor_ = std::move(set.load_factor_);
+    return *this;
+}
+
+StringSet& StringSet::operator=(const StringSet& set) {
+    RemoveNodes();
+
+    table_size_ = set.table_size_;
+    load_factor_ = set.load_factor_;
+
+    TNode* old_nodes = set.root_nodes_;
+    root_nodes_ = new TNode[table_size_];
+
+    for (unsigned root_node_index = 0; root_node_index < table_size_; ++root_node_index) {
+        if (!old_nodes[root_node_index].filled_flag_) {
+            continue;
+        }
+
+        TNode* curr_node = old_nodes + root_node_index;
+        while (curr_node != nullptr) {
+            Insert(curr_node->str_);
+            curr_node = curr_node->next_node_;
+        }
+    }
+    return *this;
+}
+
 StringSet::~StringSet() {
+    RemoveNodes();
+}
+
+void StringSet::RemoveNodes() {
     for (unsigned root_node_index = 0; root_node_index < table_size_; ++root_node_index) {
         if (root_nodes_[root_node_index].next_node_ == nullptr) {
             continue;
@@ -25,6 +88,7 @@ StringSet::~StringSet() {
         }
     }
 
+    inserted_elems_count_ = 0;
     delete[] root_nodes_;
 }
 

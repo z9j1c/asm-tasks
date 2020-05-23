@@ -1,6 +1,7 @@
 #pragma once
 #include <cstring>
 #include <iostream>
+#include <utility>
 
 // #define DEBUG_MSG 1
 
@@ -32,9 +33,17 @@ public:
 
     ~StringSet();
 
+    StringSet(const StringSet& set);
+
+    StringSet(StringSet&& set);
+
+    StringSet& operator=(const StringSet& set);
+
+    StringSet& operator=(StringSet&& set);
+
     bool Insert(const char* str);
 
-    bool Find(const char* str);
+    bool Find(const char* str) noexcept;
 
     bool Erase(const char* str);
 
@@ -66,4 +75,6 @@ protected:
     unsigned Hash(const char* line);
 
     void Rehash();
+
+    void RemoveNodes();
 };
